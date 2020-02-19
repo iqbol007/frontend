@@ -1,106 +1,230 @@
-import ajax from "./http.mjs";
+const url = "https://iqbol-express-api.herokuapp.com/posts";
 
-const apiUrl = "https://iqbol-express-api.herokuapp.com/posts";
+const rootEl = document.querySelector("#root");
 
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-const getButton = document.getElementById("get-btn");
-const setButton = document.getElementById("btn-set");
+rootEl.innerHTML = `
+    <form action="" method="post">
+        
+        <input type="text" placeholder="Описание" data-id="post-desc">
+        <button class="post-add" type="submit">Add post</button>
+        <button class="post-change btnHidden" type="submit">Change post</button>
+        <div class="front-error"></div>
+    </form>
+    <img src="./img/loadimag.gif" alt="loader" data-loader='loader'>
+    <ul class="item-list"></ul>
+`;
 
-const setContentText = document.getElementById("content-text");
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-const updateBtn = document.getElementById("btn-up");
-let idForUpdate = document.getElementById("post-id");
-const contentForUpdate = document.getElementById("content-text-up");
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+const postAdd = document.querySelector(".post-add");
+const postChange = document.querySelector(".post-change");
+const itemList = rootEl.querySelector(".item-list");
+const frontError = rootEl.querySelector(".front-error");
+const loader = rootEl.querySelector("[data-loader=loader]");
+const postDesc = document.querySelector("[data-id=post-desc]");
 
-const rootel = document.getElementById("root");
+let posts = [];
+
+const language = "ru";
+
+const translations = {
+  ru: {
+    "error.not_found": "Объект не найден",
+    "error.bad_request": "Произошла ошибка, введите айди поста",
+    "error.unknown": "Произошла ошибка",
+    "error.network": "Проверьте своё соединение"
+  },
+  en: {
+    "error.not_found": "Object not found",
+    "error.bad_request": "Error occured",
+    "error.unknown": "Error occured",
+    "error.network": "Check internet connection"
+  }
+};
+
+function translateError(code) {
+  return (
+    translations[language][code] || translations[language]["error.unknown"]
+  );
+}
+loader.style.display = "none";
 getAllPosts();
 
-updateBtn.onclick = () => {
-  const parsedId = parseInt(idForUpdate.value, 10);
-  ajax(apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      id: parsedId,
-      content: contentForUpdate.value,
-      likes: 0
-    })
-  });
-  idForUpdate.value = "";
-  contentForUpdate.value = "";
-  getAllPosts();
-};
+function getAllPosts() {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", `${url}`);
 
-//TODO: for SET >>>>>>>>
-setButton.onclick = () => {
-  rootel.innerHTML = ``;
-  ajax(apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      id: 0,
-      content: setContentText.value,
-      likes: 0
-    })
-  });
-  setContentText.value = "";
-  getAllPosts();
-};
- 
-getButton.onclick = () => {
-  getAllPosts();
-};
-function getAllPosts( ) {
-  rootel.innerHTML = ``;
-  ajax(
-    apiUrl,
-    {},
-    {
-      onsuccess: response => {
-        
-        const parsedResponse = JSON.parse(response);
-        parsedResponse.forEach(el => {
-          const id = document.createElement("span");
-          const likes = document.createElement("span");
-          const content = document.createElement("span");
-          const delBut = document.createElement("button");
-          delBut.textContent = "x";
-          const likeBut = document.createElement("button");
-          likeBut.textContent = "like";
-          id.textContent = `id:${el.id} `;
-          likes.textContent = `likes:${el.likes} `;
-          content.textContent = `content:${el.content} `;
-          delBut.addEventListener("click", () => {
-            rootel.innerHTML = ``;
-            const id = parseInt(el.id);
-            ajax(`${apiUrl}/${id}`, { method: "DELETE" });
-           getAllPosts();
+  xhr.addEventListener("load", e => {
+    loader.style.display = "block";
+    itemList.innerHTML = "";
+    const response = xhr.responseText;
+    posts = JSON.parse(response);
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      posts.forEach(o => {
+        let postEl = document.createElement("li");
+        postEl.innerHTML = `<li>id: ${o.id}  content: ${o.content} likes: ${o.likes}
+                <button data-action="likebtnp">like+</button>
+                <button data-action="likebtnm">like-</button>
+                <button  data-action="deletebtn">X</button>
+                <button data-action="edit-post">Edit</button></li> `;
+        itemList.appendChild(postEl);
+        const deletePostById = postEl.querySelector(
+          '[data-action="deletebtn"]'
+        );
+        const editPost = postEl.querySelector('[data-action="edit-post"]');
+        const likePostp = postEl
+          .querySelector('[data-action="likebtnp"]')
+          .addEventListener("click", () => {
+            likePostP(o.id);
           });
-          likeBut.addEventListener("click", () => {
-            likes.innerHTML=``;
-            const id = parseInt(el.id);
-            const url = `${apiUrl}/${id}/likes`;
-            ajax(url, { method: "POST" });
-           getAllPosts();
+        const likePostm = postEl
+          .querySelector('[data-action="likebtnm"]')
+          .addEventListener("click", () => {
+            likePostM(o.id);
           });
-          const post = document.createElement("li");
-          content.addEventListener('click',()=>{
-            idForUpdate.value=el.id;
-            contentForUpdate.value=el.content;
-          });
-          post.appendChild(id);
-          post.appendChild(content);
-          post.appendChild(likes);
-          post.appendChild(likeBut);
-          post.appendChild(delBut);
-          rootel.appendChild(post);
+
+        editPost.onclick = function(e) {
+          postDesc.value = o.content;
+
+          postChange.onclick = function(e) {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", `${url}`);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            e.preventDefault();
+
+            let post = {
+              id: o.id,
+              content: postDesc.value,
+              likes: o.likes
+            };
+            xhr.addEventListener("load", e => {
+              const response = xhr.responseText;
+              if (xhr.status >= 200 && xhr.status < 300) {
+                getAllPosts();
+                return;
+              }
+              const { error } = JSON.parse(response);
+              errorEl.innerText = translateError(error);
+            });
+            xhr.addEventListener("error", evt => {
+              errorEl.innerText = translateError("error.network");
+            });
+
+            postDesc.value = "";
+
+            xhr.send(JSON.stringify(post));
+          };
+        };
+        deletePostById.addEventListener("click", () => {
+          itemList.innerHTML = "";
+          deletePost(o.id);
         });
-      }
+      });
+    } else {
+      const { error } = JSON.parse(response);
+      frontError.innerHTML = translateError(error);
     }
-  );
+  });
+  xhr.addEventListener("error", e => {
+    frontError.innerHTML = translateError("error.network");
+  });
+  xhr.addEventListener("loadend", e => {
+    loader.style.display = "none";
+  });
+  xhr.send();
+}
+
+function deletePost(id) {
+  const xhr = new XMLHttpRequest();
+
+  xhr.open("DELETE", `${url}/${id}`);
+
+  xhr.addEventListener("load", e => {
+    const response = xhr.responseText;
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      getAllPosts();
+      return;
+    }
+
+    const { error } = JSON.parse(response);
+    frontError.innerHTML = translateError(error);
+  });
+
+  xhr.addEventListener("error", e => {
+    frontError.innerHTML = translateError("error.bad_request");
+  });
+
+  xhr.send();
+}
+
+postAdd.addEventListener("click", e => {
+  e.preventDefault();
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", `${url}`);
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  let post = {
+    id: 0,
+    content: postDesc.value,
+    likes: 0
+  };
+
+  xhr.addEventListener("load", e => {
+    const response = xhr.responseText;
+    if (xhr.status >= 200 && xhr.status < 300) {
+      itemList.innerHTML = " ";
+      getAllPosts();
+      return;
+    }
+    const { error } = JSON.parse(response);
+    frontError.innerHTML = translateError(error);
+  });
+
+  xhr.addEventListener("error", e => {
+    frontError.innerHTML = translateError("error.network");
+  });
+
+  xhr.send(JSON.stringify(post));
+});
+function likePostP(id) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", `${url}/${id}/likes`);
+  xhr.addEventListener("load", e => {
+    const response = xhr.responseText;
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      getAllPosts();
+      return;
+    }
+
+    const { error } = JSON.parse(response);
+    frontError.innerHTML = translateError(error);
+  });
+
+  xhr.addEventListener("error", e => {
+    frontError.innerHTML = translateError("error.bad_request");
+  });
+
+  xhr.send();
+}
+function likePostM(id) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("DELETE", `${url}/${id}/likes`);
+  xhr.addEventListener("load", e => {
+    const response = xhr.responseText;
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      getAllPosts();
+      return;
+    }
+
+    const { error } = JSON.parse(response);
+    frontError.innerHTML = translateError(error);
+  });
+
+  xhr.addEventListener("error", e => {
+    frontError.innerHTML = translateError("error.bad_request");
+  });
+
+  xhr.send();
 }
