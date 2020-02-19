@@ -1,6 +1,6 @@
 import ajax from "./http.mjs";
 
-const apiUrl = "http://https://iqbol-express-api.herokuapp.com";
+const apiUrl = "https://iqbol-express-api.herokuapp.com/posts";
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 const getButton = document.getElementById("get-btn");
@@ -9,15 +9,16 @@ const setButton = document.getElementById("btn-set");
 const setContentText = document.getElementById("content-text");
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 const updateBtn = document.getElementById("btn-up");
-const idForUpdate = document.getElementById("post-id");
+let idForUpdate = document.getElementById("post-id");
 const contentForUpdate = document.getElementById("content-text-up");
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 const rootel = document.getElementById("root");
+getAllPosts();
+
 updateBtn.onclick = () => {
-  rootel.innerHTML = ``;
   const parsedId = parseInt(idForUpdate.value, 10);
-  ajax(`${apiUrl}/posts`, {
+  ajax(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -30,13 +31,13 @@ updateBtn.onclick = () => {
   });
   idForUpdate.value = "";
   contentForUpdate.value = "";
-  getButton.onclick();
+  getAllPosts();
 };
 
 //TODO: for SET >>>>>>>>
 setButton.onclick = () => {
   rootel.innerHTML = ``;
-  ajax(`${apiUrl}/posts`, {
+  ajax(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -48,19 +49,21 @@ setButton.onclick = () => {
     })
   });
   setContentText.value = "";
-  getButton.onclick();
+  getAllPosts();
 };
-
-//TODO:for SET
+ 
 getButton.onclick = () => {
+  getAllPosts();
+};
+function getAllPosts( ) {
   rootel.innerHTML = ``;
   ajax(
-    `${apiUrl}/posts`,
+    apiUrl,
     {},
     {
       onsuccess: response => {
+        
         const parsedResponse = JSON.parse(response);
-        console.log(parsedResponse);
         parsedResponse.forEach(el => {
           const id = document.createElement("span");
           const likes = document.createElement("span");
@@ -75,16 +78,21 @@ getButton.onclick = () => {
           delBut.addEventListener("click", () => {
             rootel.innerHTML = ``;
             const id = parseInt(el.id);
-            ajax(`${apiUrl}/posts/${id}`, { method: "DELETE" });
-            getButton.onclick();
+            ajax(`${apiUrl}/${id}`, { method: "DELETE" });
+           getAllPosts();
           });
           likeBut.addEventListener("click", () => {
-            rootel.innerHTML = ``;
+            likes.innerHTML=``;
             const id = parseInt(el.id);
-            ajax(`${apiUrl}/posts/${id}/likes`, { method: "POST" });
-            getButton.onclick();
+            const url = `${apiUrl}/${id}/likes`;
+            ajax(url, { method: "POST" });
+           getAllPosts();
           });
           const post = document.createElement("li");
+          content.addEventListener('click',()=>{
+            idForUpdate.value=el.id;
+            contentForUpdate.value=el.content;
+          });
           post.appendChild(id);
           post.appendChild(content);
           post.appendChild(likes);
@@ -95,4 +103,4 @@ getButton.onclick = () => {
       }
     }
   );
-};
+}
