@@ -2,6 +2,7 @@ export default function ajax(url,
     options = { method: 'GET', headers: {}, body: null },
     callbacks = { onsuccess: () => { }, onerror: () => { }, oncomplete: () => { } }
 ) {
+    
     const xhr = new XMLHttpRequest();
     xhr.open(options.method || 'GET', url);
 
@@ -14,6 +15,7 @@ export default function ajax(url,
         }
     }
     xhr.addEventListener('load', evt => {
+        
         const response = xhr.responseText;
         if (xhr.status >= 200 && xhr.status < 300) {
             if (callbacks.onsuccess) {
