@@ -1,4 +1,4 @@
-const url = "https://iqbol-express-api.herokuapp.com/posts";
+const url = "https://i-back-api.herokuapp.com/posts";
 
 const rootEl = document.querySelector("#root");
 
@@ -6,8 +6,8 @@ rootEl.innerHTML = `
     <form action="" method="post">
         
         <input type="text" placeholder="Описание" data-id="post-desc">
-        <button class="post-add" type="submit">Add post</button>
-        <button class="post-change btnHidden" type="submit">Change post</button>
+        <button class="post-add" type="submit">Добавить</button>
+        <button class="post-change btnHidden" type="submit">Изменить</button>
         <div class="front-error"></div>
     </form>
     <img src="./img/loadimag.gif" alt="loader" data-loader='loader'>
@@ -45,7 +45,7 @@ function translateError(code) {
     translations[language][code] || translations[language]["error.unknown"]
   );
 }
-loader.style.display = "none";
+loader.style.display = "block";
 getAllPosts();
 
 function getAllPosts() {
@@ -62,10 +62,9 @@ function getAllPosts() {
       posts.forEach(o => {
         let postEl = document.createElement("li");
         postEl.innerHTML = `<li>id: ${o.id}  content: ${o.content} likes: ${o.likes}
-                <button data-action="likebtnp">like+</button>
-                <button data-action="likebtnm">like-</button>
+                <b data-action="likebtnp">❤️</b>
                 <button  data-action="deletebtn">X</button>
-                <button data-action="edit-post">Edit</button></li> `;
+                <button data-action="edit-post">Изменить</button></li> `;
         itemList.appendChild(postEl);
         const deletePostById = postEl.querySelector(
           '[data-action="deletebtn"]'
@@ -76,12 +75,6 @@ function getAllPosts() {
           .addEventListener("click", () => {
             likePostP(o.id);
           });
-        const likePostm = postEl
-          .querySelector('[data-action="likebtnm"]')
-          .addEventListener("click", () => {
-            likePostM(o.id);
-          });
-
         editPost.onclick = function(e) {
           postDesc.value = o.content;
 
@@ -183,7 +176,7 @@ postAdd.addEventListener("click", e => {
   xhr.addEventListener("error", e => {
     frontError.innerHTML = translateError("error.network");
   });
-
+  postDesc.value=``;
   xhr.send(JSON.stringify(post));
 });
 function likePostP(id) {
@@ -206,25 +199,4 @@ function likePostP(id) {
   });
 
   xhr.send();
-}
-function likePostM(id) {
-  const xhr = new XMLHttpRequest();
-  xhr.open("DELETE", `${url}/${id}/likes`);
-  xhr.addEventListener("load", e => {
-    const response = xhr.responseText;
-
-    if (xhr.status >= 200 && xhr.status < 300) {
-      getAllPosts();
-      return;
-    }
-
-    const { error } = JSON.parse(response);
-    frontError.innerHTML = translateError(error);
-  });
-
-  xhr.addEventListener("error", e => {
-    frontError.innerHTML = translateError("error.bad_request");
-  });
-
-  xhr.send();
-}
+} 
